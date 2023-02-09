@@ -61,7 +61,7 @@ RUN luarocks install --deps-mode=none --tree /usr/local https://luarocks.org/man
 RUN luarocks install --deps-mode=none --tree /usr/local https://luarocks.org/manifests/hamish/lua-resty-iputils-0.3.0-1.src.rock
 RUN luarocks install --deps-mode=none --tree /usr/local https://luarocks.org/manifests/golgote/net-url-0.9-1.src.rock
 
-RUN microdnf -y remove yum-utils libyaml-devel m4 openssl-devel perl-Git-2.31.1-2.el8.noarch git annobin-10.67-3.el8.x86_64 gcc-plugin-annobin-8.5.0-16.el8_7.x86_64 gcc luarocks && \
+RUN microdnf -y remove yum-utils libyaml-devel m4 openssl-devel perl-Git-* git annobin-* gcc-plugin-annobin-* gcc luarocks && \
     rm -rf /var/cache/yum && microdnf clean all -y && \
     rm -rf ./*
 
