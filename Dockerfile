@@ -1,4 +1,4 @@
-FROM registry.access.redhat.com/ubi8:8.5
+FROM registry.access.redhat.com/ubi8/ubi-minimal:8.7-1049 AS base
 
 ARG OPENRESTY_RPM_VERSION="1.19.3"
 
@@ -10,6 +10,12 @@ LABEL summary="The 3scale API gateway (APIcast) is an OpenResty application, whi
       io.openshift.tags="integration, nginx, lua, openresty, api, gateway, 3scale, rhamp" \
       maintainer="3scale-engineering@redhat.com"
 
+# Labels consumed by Red Hat build service
+LABEL com.redhat.component="3scale-amp-apicast-gateway-container" \
+      name="3scale-amp2/apicast-gateway-rhel8" \
+    version="1.22.0"\
+      maintainer="3scale-engineering@redhat.com"
+
 WORKDIR /tmp
 
 ENV AUTO_UPDATE_INTERVAL=0 \
@@ -18,17 +24,17 @@ ENV AUTO_UPDATE_INTERVAL=0 \
     PATH=/opt/app-root/src/bin:/opt/app-root/bin:$PATH \
     PLATFORM="el8"
 
-RUN sed -i s/enabled=./enabled=0/g /etc/yum/pluginconf.d/subscription-manager.conf
+RUN microdnf update
 
-RUN dnf install -y 'dnf-command(config-manager)'
+RUN microdnf install -y 'yum-utils'
 
-RUN yum config-manager --add-repo http://packages.dev.3sca.net/dev_packages_3sca_net.repo
+RUN yum-config-manager --add-repo http://packages.dev.3sca.net/dev_packages_3sca_net.repo
 
-RUN PKGS="perl-interpreter-5.26.3 libyaml-devel-0.1.7 m4 openssl-devel git gcc make curl openresty-resty-${OPENRESTY_RPM_VERSION} luarocks-2.3.0 opentracing-cpp-devel-1.3.0 libopentracing-cpp1-1.3.0 jaegertracing-cpp-client openresty-opentracing-${OPENRESTY_RPM_VERSION}" && \
+RUN PKGS="perl-interpreter-5.26.3 libyaml-devel-0.1.7 m4 openssl-devel git gcc make curl tar openresty-resty-${OPENRESTY_RPM_VERSION} luarocks-2.3.0 opentracing-cpp-devel-1.3.0 libopentracing-cpp1-1.3.0 jaegertracing-cpp-client openresty-opentracing-${OPENRESTY_RPM_VERSION}" && \
     mkdir -p "$HOME" && \
-    yum -y --setopt=tsflags=nodocs install $PKGS && \
+    microdnf -y --setopt=tsflags=nodocs install $PKGS && \
     rpm -V $PKGS && \
-    yum clean all -y
+    microdnf clean all -y
 
 COPY site_config.lua /usr/share/lua/5.1/luarocks/site_config.lua
 COPY config-*.lua /usr/local/openresty/config-5.1.lua
@@ -55,8 +61,8 @@ RUN luarocks install --deps-mode=none --tree /usr/local https://luarocks.org/man
 RUN luarocks install --deps-mode=none --tree /usr/local https://luarocks.org/manifests/hamish/lua-resty-iputils-0.3.0-1.src.rock
 RUN luarocks install --deps-mode=none --tree /usr/local https://luarocks.org/manifests/golgote/net-url-0.9-1.src.rock
 
-RUN yum -y remove libyaml-devel m4 openssl-devel git gcc luarocks && \
-    rm -rf /var/cache/yum && yum clean all -y && \
+RUN microdnf -y remove yum-utils libyaml-devel m4 openssl-devel perl-Git-* git annobin-* gcc-plugin-annobin-* gcc luarocks && \
+    rm -rf /var/cache/yum && microdnf clean all -y && \
     rm -rf ./*
 
 COPY gateway/. /opt/app-root/src/

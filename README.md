@@ -1,3 +1,7 @@
+# ! IMPORTANT
+
+This is a fork repository from [https://github.com/3scale/APIcast](https://github.com/3scale/APIcast) initially created to use a ubi8-minimal based image because it is a smaller image, we will have less packages to maintain and in turn fewer CVEs. 
+
 # APIcast
 
 [![CircleCI](https://circleci.com/gh/3scale/APIcast/tree/master.svg?style=shield)](https://circleci.com/gh/3scale/APIcast/tree/master)
