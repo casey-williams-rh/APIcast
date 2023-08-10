@@ -2,8 +2,10 @@
 
 set -exv
 
-IMAGE="quay.io/cloudservices/insights-3scale"
-IMAGE_TAG=apicast-base-$(git rev-parse --short=7 HEAD)
+IMAGE="quay.io/cloudservices/apicast-base"
+IMAGE_TAG=$(git rev-parse --short=7 HEAD)
+LATEST_TAG="latest"
+SECURITY_COMPLIANCE_TAG="sc-$(date +%Y%m%d)"
 
 if [[ -z "$QUAY_USER" || -z "$QUAY_TOKEN" ]]; then
     echo "QUAY_USER and QUAY_TOKEN must be set"
@@ -17,6 +19,9 @@ docker --config="$DOCKER_CONF" build --no-cache -t "${IMAGE}:${IMAGE_TAG}" .
 docker --config="$DOCKER_CONF" push "${IMAGE}:${IMAGE_TAG}"
 
 if [[ $GIT_BRANCH == *"security-compliance"* ]]; then
-    docker --config="$DOCKER_CONF" tag "${IMAGE}:${IMAGE_TAG}" "${IMAGE}:apicast-base-security-compliance"
-    docker --config="$DOCKER_CONF" push "${IMAGE}:apicast-base-security-compliance"
+    docker --config="$DOCKER_CONF" tag "${IMAGE}:${IMAGE_TAG}" "${IMAGE}:${SECURITY_COMPLIANCE_TAG}"
+    docker --config="$DOCKER_CONF" push "${IMAGE}:${SECURITY_COMPLIANCE_TAG}"
+else
+    docker --config="$DOCKER_CONF" tag "${IMAGE}:${IMAGE_TAG}" "${IMAGE}:${LATEST_TAG}"
+    docker --config="$DOCKER_CONF" push "${IMAGE}:${LATEST_TAG}"
 fi
