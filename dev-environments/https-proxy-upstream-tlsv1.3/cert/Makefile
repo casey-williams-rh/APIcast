@@ -1,5 +1,5 @@
 clean:
-	- rm *.crt *.key *.pem *.csr
+	- rm *.crt *.key *.pem *.csr *.srl
 
 ca:
 	openssl genrsa -out rootCA.key 2048

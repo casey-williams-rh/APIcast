@@ -8,20 +8,20 @@ describe('Upstream connection policy', function()
         send_timeout = 2,
         read_timeout = 3
       }
+      local context = {}
       local policy = UpstreamConnectionPolicy.new(config_timeouts)
+      policy:rewrite(context)
 
-      local exported = policy:export()
-
-      assert.same(config_timeouts, exported.upstream_connection_opts)
+      assert.same(config_timeouts, context.upstream_connection_opts)
     end)
 
     it('does not return timeout params that is not in the config', function()
       local config_timeouts = { connect_timeout = 1 } -- Missing send and read
+      local context = {}
       local policy = UpstreamConnectionPolicy.new(config_timeouts)
+      policy:rewrite(context)
 
-      local exported = policy:export()
-
-      assert.same(config_timeouts, exported.upstream_connection_opts)
+      assert.same(config_timeouts, context.upstream_connection_opts)
     end)
   end)
 end)

@@ -9,7 +9,7 @@
     "properties": {
       "connect_timeout": {
         "description": "Timeout for establishing a connection (in seconds).",
-        "type": "integer"
+        "type": "number"
       },
       "send_timeout": {
         "description": "Timeout between two successive write operations (in seconds).",

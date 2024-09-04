@@ -52,11 +52,11 @@ _M.rewrite = find_service
 -- ssl_certificate is the first phase executed when request arrives on HTTPS
 -- therefore it needs to find a service to build a policy chain.
 -- The method and the path are not available in the ssl_certificate phase, so
--- path-based routing does not work. It should always find the service by host.
+-- path-based routing does not compatible with this phase.
 function _M:ssl_certificate(context)
   if self.find_service ~= host_based_finder.find_service then
-    ngx.log(ngx.WARN, 'Configured to do path-based routing, but it is not',
-                      'compatible with TLS. Falling back to routing by host.')
+    ngx.log(ngx.DEBUG, 'Configured to do path-based routing, but it is not',
+                      ' compatible with ssl_certificate phase. Skipping ssl_certificate phase...')
     return
   end
   context.service = context.service or

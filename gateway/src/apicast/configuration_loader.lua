@@ -1,4 +1,4 @@
-local configuration_store = require('apicast.configuration_store')
+local configuration_store = require 'apicast.configuration_store'
 local configuration_parser = require 'apicast.configuration_parser'
 local mock_loader = require 'apicast.configuration_loader.mock'
 local file_loader = require 'apicast.configuration_loader.file'
@@ -75,7 +75,7 @@ function _M.global(contents)
   return _M.configure(context.configuration, contents)
 end
 
-function _M.configure(configuration, contents)
+function _M.configure(configuration, contents, reset_cache)
   if not configuration then
     return nil, 'not initialized'
   end
@@ -90,6 +90,12 @@ function _M.configure(configuration, contents)
   end
 
   if config then
+    -- We have the configuration available at this point so it's safe to purge the
+    -- cache and remove old items (deleted services)
+    if reset_cache then
+      ngx.log(ngx.DEBUG, "flushing caches as part of the configuration reload")
+      configuration:reset()
+    end
     configuration:store(config, ttl())
     collectgarbage()
     return config
@@ -160,7 +166,7 @@ end
 
 local function refresh_configuration(configuration)
   local config = _M.load()
-  local init, err = _M.configure(configuration, config)
+  local init, err = _M.configure(configuration, config, true)
 
   if init then
     ngx.log(ngx.DEBUG, 'updated configuration via timer: ', config)
@@ -204,22 +210,15 @@ function boot.init_worker(configuration)
     schedule(interval, handler, ...)
   end
 
-  -- Check whether the reserved boot configuration is fresh or stale.
-  -- If it is stale, refresh configuration
-  -- When a worker process is (re-)spawned,
-  -- it will start working with fresh (according the ttl semantics) configuration
-  local boot_reserved_hosts = configuration:find_by_host(boot_reserved_domain, false)
-  if(#boot_reserved_hosts == 0)
-  then
-    -- the boot configuration has expired, load fresh config
-    ngx.log(ngx.INFO, 'boot time configuration has expired')
-    -- ngx.socket.tcp is not available at the init or init_worker phases,
-    -- it needs to be scheduled (with delay = 0)
-    schedule(0, handler, configuration)
-  elseif(interval > 0)
-  then
+  if interval > 0 then
+    -- Check whether the reserved boot configuration is fresh or stale.
+    -- If it is stale, refresh configuration
+    -- When a worker process is (re-)spawned,
+    -- it will start working with fresh (according the ttl semantics) configuration
+    local boot_reserved_hosts = configuration:find_by_host(boot_reserved_domain, false)
     ngx.log(ngx.DEBUG, 'schedule new configuration loading')
-    schedule(interval, handler, configuration)
+    local curr_interval = #boot_reserved_hosts == 0 and 0 or interval
+    schedule(curr_interval, handler, configuration)
   else
     ngx.log(ngx.DEBUG, 'no scheduling for configuration loading')
   end
@@ -236,6 +235,8 @@ local function lazy_load_config(configuration, host)
     if not config then
       ngx.log(ngx.WARN, 'failed to get config for host: ', host)
     end
+    -- Lazy load will never returned stale data, so no need to reset the
+    -- cache
     _M.configure(configuration, config)
 end
 

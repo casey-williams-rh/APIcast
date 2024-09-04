@@ -11,7 +11,7 @@
     "properties": {
       "auth_type": {
         "type": "string",
-        "enum": ["use_3scale_oidc_issuer_endpoint", "client_id+client_secret"],
+        "enum": ["use_3scale_oidc_issuer_endpoint", "client_id+client_secret", "client_secret_jwt", "private_key_jwt"],
         "default": "client_id+client_secret"
       },
       "max_ttl_tokens": {
@@ -60,6 +60,104 @@
           },
           "required": [
             "client_id", "client_secret", "introspection_url"
+          ]
+        }, {
+            "properties": {
+              "auth_type": {
+                "describe": "Authenticate with client_secret_jwt method defined in https://openid.net/specs/openid-connect-core-1_0.html#ClientAuthentication",
+                "enum": ["client_secret_jwt"]
+              },
+              "client_id": {
+                "description": "Client ID for the Token Introspection Endpoint",
+                "type": "string"
+              },
+              "client_secret": {
+                "description": "Client Secret for the Token Introspection Endpoint",
+                "type": "string"
+              },
+              "client_jwt_assertion_expires_in": {
+                "description": "Duration of the singed JWT in seconds",
+                "type": "integer",
+                "default": 60
+              },
+              "client_jwt_assertion_audience": {
+                "description": "Audience. The aud claim of the singed JWT. The audience SHOULD be the URL of the Authorization Server’s Token Endpoint.",
+                "type": "string"
+              },
+              "introspection_url": {
+                "description": "Introspection Endpoint URL",
+                "type": "string"
+              }
+            },
+            "required": [
+              "client_id", "client_secret", "introspection_url", "client_jwt_assertion_audience"
+            ]
+        }, {
+          "properties": {
+            "auth_type": {
+              "describe": "Authenticate with client_secret_jwt method defined in https://openid.net/specs/openid-connect-core-1_0.html#ClientAuthentication",
+              "enum": ["private_key_jwt"]
+            },
+            "client_id": {
+              "description": "Client ID for the Token Introspection Endpoint",
+              "type": "string"
+            },
+            "introspection_url": {
+              "description": "Introspection Endpoint URL",
+              "type": "string"
+            },
+            "client_jwt_assertion_expires_in": {
+              "description": "Duration of the singed JWT in seconds",
+              "type": "integer",
+              "default": 60
+            },
+            "client_jwt_assertion_audience": {
+              "description": "Audience. The aud claim of the singed JWT. The audience SHOULD be the URL of the Authorization Server’s Token Endpoint.",
+              "type": "string"
+            },
+            "certificate_type": {
+              "title": "Certificate type",
+              "type": "string",
+              "enum": [
+                "path",
+                "embedded"
+              ],
+              "default": "path"
+            }
+          },
+          "dependencies": {
+            "certificate_type": {
+              "oneOf": [
+                {
+                  "properties": {
+                    "certificate_type": {
+                      "const": "embedded"
+                    },
+                    "certificate": {
+                      "title": "Certificate",
+                      "description": "Client RSA private key used to sign JWT.",
+                      "format": "data-url",
+                      "type": "string"
+                    }
+                  }
+                },
+                {
+                  "properties": {
+                    "certificate_type": {
+                      "const": "path"
+                    },
+                    "certificate": {
+                      "title": "Certificate",
+                      "description": "Client RSA private key used to sign JWT.",
+                      "type": "string"
+                    }
+                  }
+                }
+              ]
+            }
+          },
+          "required": [
+            "client_id", "introspection_url", "client_jwt_assertion_audience", "certificate_type"
           ]
         }]
       }

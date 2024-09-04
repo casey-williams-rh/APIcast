@@ -13,8 +13,8 @@ function _M.new(config)
   return self
 end
 
-function _M:export()
-  return { upstream_retries = self.retries }
+function _M:rewrite(context)
+  context.upstream_retries = self.retries
 end
 
 return _M

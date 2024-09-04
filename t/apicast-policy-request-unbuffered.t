@@ -18,6 +18,10 @@ run_tests();
 __DATA__
 
 === TEST 1: request_unbuffered policy with big file
+For this test, we send a request with a large body, APIcast sends the request as soon as
+it receives it. However, since upstream buffered the request body and sends it back to the
+client, we will see exactly one occurrence of the line "client request body cached to file
+temporary" in the log.
 --- configuration
 {
   "services": [
@@ -210,6 +214,149 @@ $::data
 --- grep_error_log eval
 qr/a client request body is buffered to a temporary file/
 --- grep_error_log_out
+a client request body is buffered to a temporary file
+--- no_error_log
+[error]
+
+
+
+=== TEST 4: request_unbuffered policy with big file and inside a conditional policy
+--- configuration
+{
+  "services": [
+    {
+      "backend_version":  1,
+      "proxy": {
+        "api_backend": "http://test-upstream.lvh.me:$TEST_NGINX_SERVER_PORT/",
+        "proxy_rules": [
+          { "pattern": "/", "http_method": "POST", "metric_system_name": "hits", "delta": 2 }
+        ],
+        "policy_chain": [
+          {
+            "name": "apicast.policy.conditional",
+            "configuration": {
+              "condition": {
+                "operations": [
+                  {
+                    "left": "{{ uri }}",
+                    "left_type": "liquid",
+                    "op": "==",
+                    "right": "/test",
+                    "right_type": "plain"
+                  }
+                ]
+              },
+              "policy_chain": [
+                {
+                  "name": "request_unbuffered",
+                  "version": "builtin",
+                  "configuration": {}
+                }
+              ]
+            }
+          },
+          {
+            "name": "apicast",
+            "version": "builtin",
+            "configuration": {}
+          }
+        ]
+      }
+    }
+  ]
+}
+--- backend
+location /transactions/authrep.xml {
+  content_by_lua_block {
+    ngx.exit(200)
+  }
+}
+--- upstream
+server_name test-upstream.lvh.me;
+  location /test {
+    echo_read_request_body;
+    echo_request_body;
+  }
+--- request eval
+"POST /test?user_key= \n" . $ENV{LARGE_BODY}
+--- response_body eval chomp
+$ENV{LARGE_BODY}
+--- error_code: 200
+--- grep_error_log eval
+qr/a client request body is buffered to a temporary file/
+--- grep_error_log_out
+a client request body is buffered to a temporary file
+--- no_error_log
+[error]
+
+
+
+=== TEST 5: request_unbuffered policy with conditional policy and false condition
+--- configuration
+{
+  "services": [
+    {
+      "backend_version":  1,
+      "proxy": {
+        "api_backend": "http://test-upstream.lvh.me:$TEST_NGINX_SERVER_PORT/",
+        "proxy_rules": [
+          { "pattern": "/", "http_method": "POST", "metric_system_name": "hits", "delta": 2 }
+        ],
+        "policy_chain": [
+          {
+            "name": "apicast.policy.conditional",
+            "configuration": {
+              "condition": {
+                "operations": [
+                  {
+                    "left": "{{ uri }}",
+                    "left_type": "liquid",
+                    "op": "==",
+                    "right": "/invalid",
+                    "right_type": "plain"
+                  }
+                ]
+              },
+              "policy_chain": [
+                {
+                  "name": "request_unbuffered",
+                  "version": "builtin",
+                  "configuration": {}
+                }
+              ]
+            }
+          },
+          {
+            "name": "apicast",
+            "version": "builtin",
+            "configuration": {}
+          }
+        ]
+      }
+    }
+  ]
+}
+--- backend
+location /transactions/authrep.xml {
+  content_by_lua_block {
+    ngx.exit(200)
+  }
+}
+--- upstream
+server_name test-upstream.lvh.me;
+  location /test {
+    echo_read_request_body;
+    echo_request_body;
+  }
+--- request eval
+"POST /test?user_key= \n" . $ENV{LARGE_BODY}
+--- response_body eval chomp
+$ENV{LARGE_BODY}
+--- error_code: 200
+--- grep_error_log eval
+qr/a client request body is buffered to a temporary file/
+--- grep_error_log_out
+a client request body is buffered to a temporary file
 a client request body is buffered to a temporary file
 --- no_error_log
 [error]
