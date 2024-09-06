@@ -13,10 +13,8 @@ function _M.new(config)
   return self
 end
 
-function _M:export()
-  return {
-    request_unbuffered = true,
-  }
+function _M:rewrite(context)
+  context.request_unbuffered = true
 end
 
 return _M

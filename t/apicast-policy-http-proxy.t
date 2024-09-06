@@ -1002,3 +1002,144 @@ qr/a client request body is buffered to a temporary file/
 --- grep_error_log_out
 a client request body is buffered to a temporary file
 --- user_files fixture=tls.pl eval
+
+
+
+=== TEST 16: http_proxy policy inside conditional policy
+We only want to check that the policy is executed so only single test
+with http_proxy is enough
+--- configuration
+{
+  "services": [
+    {
+      "backend_version":  1,
+      "backend_authentication_type": "service_token",
+      "backend_authentication_value": "token-value",
+      "proxy": {
+        "api_backend": "http://test-upstream.lvh.me:$TEST_NGINX_SERVER_PORT/",
+        "proxy_rules": [
+          { "pattern": "/", "http_method": "GET", "metric_system_name": "hits", "delta": 2 }
+        ],
+        "policy_chain": [
+          {
+            "name": "apicast.policy.conditional",
+            "configuration": {
+              "condition": {
+                "operations": [
+                  {
+                    "left": "{{ uri }}",
+                    "left_type": "liquid",
+                    "op": "==",
+                    "right": "/test",
+                    "right_type": "plain"
+                  }
+                ]
+              },
+              "policy_chain": [
+                {
+                  "name": "apicast.policy.http_proxy",
+                  "configuration": {
+                      "http_proxy": "$TEST_NGINX_HTTP_PROXY"
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "name": "apicast.policy.apicast"
+          }
+        ]
+      }
+    }
+  ]
+}
+--- backend
+server_name test_backend.lvh.me;
+  location /transactions/authrep.xml {
+    content_by_lua_block {
+      ngx.exit(ngx.OK)
+    }
+  }
+--- upstream
+server_name test-upstream.lvh.me;
+  location /test {
+    echo_read_request_body;
+    echo_request_body;
+  }
+--- request
+GET /test?user_key=
+--- error_code: 200
+--- error_log env
+using proxy: $TEST_NGINX_HTTP_PROXY
+--- no_error_log
+[error]
+
+
+
+=== TEST 17: Should not be triggered when combined with conditional policy and false conditions
+We know that the policy outputs "using proxy: " when request is forward to proxy server, so we
+can use that to verify that it was not executed.
+--- configuration
+{
+  "services": [
+    {
+      "backend_version":  1,
+      "backend_authentication_type": "service_token",
+      "backend_authentication_value": "token-value",
+      "proxy": {
+        "api_backend": "http://test-upstream.lvh.me:$TEST_NGINX_SERVER_PORT/",
+        "proxy_rules": [
+          { "pattern": "/", "http_method": "POST", "metric_system_name": "hits", "delta": 2 }
+        ],
+        "policy_chain": [
+          {
+            "name": "apicast.policy.conditional",
+            "configuration": {
+              "condition": {
+                "operations": [
+                  {
+                    "left": "{{ uri }}",
+                    "left_type": "liquid",
+                    "op": "==",
+                    "right": "/invalid",
+                    "right_type": "plain"
+                  }
+                ]
+              },
+              "policy_chain": [
+                {
+                  "name": "apicast.policy.http_proxy",
+                  "configuration": {
+                      "all_proxy": "$TEST_NGINX_HTTP_PROXY"
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "name": "apicast.policy.apicast"
+          }
+        ]
+      }
+    }
+  ]
+}
+--- backend
+server_name test_backend.lvh.me;
+  location /transactions/authrep.xml {
+    content_by_lua_block {
+      ngx.exit(ngx.OK)
+    }
+  }
+--- upstream
+server_name test-upstream.lvh.me;
+  location /test {
+    echo_read_request_body;
+    echo_request_body;
+  }
+--- request
+POST /test?user_key=
+--- error_code: 200
+--- no_error_log env
+["[error]",
+"using proxy: $TEST_NGINX_HTTP_PROXY "]

@@ -457,3 +457,151 @@ GET /
 --- error_code: 504
 --- error_log
 upstream timed out
+
+
+
+=== TEST 9: works also with the conditional policy
+--- configuration
+{
+  "services": [
+    {
+      "id": 42,
+      "backend_version": 1,
+      "backend_authentication_type": "service_token",
+      "backend_authentication_value": "token-value",
+      "proxy": {
+        "policy_chain": [
+          {
+            "name": "apicast.policy.conditional",
+            "configuration": {
+              "condition": {
+                "operations": [
+                  {
+                    "left": "{{ uri }}",
+                    "left_type": "liquid",
+                    "op": "==",
+                    "right": "/test",
+                    "right_type": "plain"
+                  }
+                ]
+              },
+              "policy_chain": [
+                {
+                  "name": "apicast.policy.retry",
+                  "configuration": {
+                    "retries": 5
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "name": "apicast.policy.apicast"
+          }
+        ],
+        "api_backend": "http://test:$TEST_NGINX_SERVER_PORT/",
+        "proxy_rules": [
+          { "pattern": "/", "http_method": "GET", "metric_system_name": "hits", "delta": 2 }
+        ]
+      }
+    }
+  ]
+}
+--- backend
+  location /transactions/authrep.xml {
+    content_by_lua_block {
+      ngx.exit(200)
+    }
+  }
+--- upstream
+ location /test {
+    content_by_lua_block {
+     local test_counter = ngx.shared.test_counter or 1
+     if test_counter <= 2 then
+       ngx.shared.test_counter = test_counter + 1
+       ngx.exit(503)
+     else
+       ngx.say('yay, api backend');
+     end
+    }
+ }
+--- request
+GET /test?user_key=foo
+--- response_body
+yay, api backend
+--- error_code: 200
+--- no_error_log
+[error]
+
+
+
+=== TEST 10: should not retry when inside conditional policy and with fail condition
+--- configuration
+{
+  "services": [
+    {
+      "id": 42,
+      "backend_version": 1,
+      "backend_authentication_type": "service_token",
+      "backend_authentication_value": "token-value",
+      "proxy": {
+        "policy_chain": [
+          {
+            "name": "apicast.policy.conditional",
+            "configuration": {
+              "condition": {
+                "operations": [
+                  {
+                    "left": "{{ uri }}",
+                    "left_type": "liquid",
+                    "op": "==",
+                    "right": "/invalid",
+                    "right_type": "plain"
+                  }
+                ]
+              },
+              "policy_chain": [
+                {
+                  "name": "apicast.policy.retry",
+                  "configuration": {
+                    "retries": 5
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "name": "apicast.policy.apicast"
+          }
+        ],
+        "api_backend": "http://test:$TEST_NGINX_SERVER_PORT/",
+        "proxy_rules": [
+          { "pattern": "/", "http_method": "GET", "metric_system_name": "hits", "delta": 2 }
+        ]
+      }
+    }
+  ]
+}
+--- backend
+  location /transactions/authrep.xml {
+    content_by_lua_block {
+      ngx.exit(200)
+    }
+  }
+--- upstream
+ location /test {
+    content_by_lua_block {
+     local test_counter = ngx.shared.test_counter or 1
+     if test_counter <= 2 then
+       ngx.shared.test_counter = test_counter + 1
+       ngx.exit(503)
+     else
+       ngx.say('yay, api backend');
+     end
+    }
+ }
+--- request
+GET /test?user_key=foo
+--- error_code: 503
+--- no_error_log
+[error]

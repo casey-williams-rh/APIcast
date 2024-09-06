@@ -1,6 +1,6 @@
 FROM registry.access.redhat.com/ubi8/ubi-minimal AS base
 
-ARG OPENRESTY_RPM_VERSION="1.19.3-23.el8"
+ARG OPENRESTY_RPM_VERSION="1.21.4-1.el8"
 ARG LUAROCKS_VERSION="2.3.0"
 ARG JAEGERTRACING_CPP_CLIENT_RPM_VERSION="0.3.1-13.el8"
 
@@ -62,6 +62,7 @@ RUN luarocks install --deps-mode=none --tree /usr/local https://luarocks.org/man
 RUN luarocks install --deps-mode=none --tree /usr/local https://luarocks.org/manifests/knyar/nginx-lua-prometheus-0.20181120-2.src.rock
 RUN luarocks install --deps-mode=none --tree /usr/local https://luarocks.org/manifests/hamish/lua-resty-iputils-0.3.0-1.src.rock
 RUN luarocks install --deps-mode=none --tree /usr/local https://luarocks.org/manifests/golgote/net-url-0.9-1.src.rock
+RUN luarocks install --deps-mode=none --tree /usr/local https://luarocks.org/manifests/membphis/lua-resty-ipmatcher-0.6.1-0.src.rock
 
 RUN microdnf -y remove yum-utils openssl-devel perl-Git-* git annobin-* gcc-plugin-annobin-* gcc luarocks && \
     rm -rf /var/cache/yum && microdnf clean all -y && \

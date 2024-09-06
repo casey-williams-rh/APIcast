@@ -1,4 +1,4 @@
-FROM alpine:3.17.3
+FROM alpine:3
 
 LABEL summary="Forward proxy based on tinyproxy for development purposes" \
       description="Forward proxy based on tinyproxy for development purposes" \
@@ -7,6 +7,6 @@ LABEL summary="Forward proxy based on tinyproxy for development purposes" \
       io.openshift.tags="tinyproxy, proxy" \
       maintainer="3scale-engineering@redhat.com"
 
-RUN apk --no-cache add tinyproxy=1.11.1-r2
+RUN apk --no-cache add tinyproxy
 ENTRYPOINT ["/usr/bin/tinyproxy"]
 CMD ["-d"]

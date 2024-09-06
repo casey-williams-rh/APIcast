@@ -308,3 +308,155 @@ ETag: foobar
 using proxy: $TEST_NGINX_HTTPS_PROXY
 err: timeout
 --- user_files fixture=tls.pl eval
+
+
+
+=== TEST 5: upstream_connection policy inside conditional policy
+--- configuration
+{
+  "services": [
+    {
+      "id": 42,
+      "backend_version":  1,
+      "backend_authentication_type": "service_token",
+      "backend_authentication_value": "token-value",
+      "proxy": {
+        "api_backend": "http://test-upstream.lvh.me:$TEST_NGINX_SERVER_PORT/",
+        "proxy_rules": [
+          { "pattern": "/", "http_method": "GET", "metric_system_name": "hits", "delta": 2 }
+        ],
+        "policy_chain": [
+          {
+            "name": "apicast.policy.conditional",
+            "configuration": {
+              "condition": {
+                "operations": [
+                  {
+                    "left": "{{ uri }}",
+                    "left_type": "liquid",
+                    "op": "==",
+                    "right": "/test",
+                    "right_type": "plain"
+                  }
+                ]
+              },
+              "policy_chain": [
+                {
+                  "name": "apicast.policy.upstream_connection",
+                  "configuration": {
+                    "connect_timeout": 1,
+                    "send_timeout": 1,
+                    "read_timeout": 1
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "name": "apicast.policy.apicast"
+          }
+        ]
+      }
+    }
+  ]
+}
+--- backend
+  location /transactions/authrep.xml {
+    content_by_lua_block {
+      ngx.exit(ngx.OK)
+    }
+  }
+--- upstream
+  server_name test-upstream.lvh.me;
+  location /test {
+    content_by_lua_block {
+      ngx.say("first part")
+      ngx.flush(true)
+      ngx.sleep(3)
+      ngx.say("yay, second part")
+    }
+  }
+--- request
+GET /test?user_key=value
+--- ignore_response
+--- error_log
+upstream timed out
+
+
+
+=== TEST 6: upstream_connection policy inside conditional policy with false condition
+In this test the upstream returns part of the response, then waits 3s and after
+that, it returns the rest of the response. We set timeouts to 1s inside the conditional
+policy but due to false condition, the default timeout of 60s should take effect and we
+should receive the whole response back
+--- configuration
+{
+  "services": [
+    {
+      "id": 42,
+      "backend_version":  1,
+      "backend_authentication_type": "service_token",
+      "backend_authentication_value": "token-value",
+      "proxy": {
+        "api_backend": "http://test-upstream.lvh.me:$TEST_NGINX_SERVER_PORT/",
+        "proxy_rules": [
+          { "pattern": "/", "http_method": "GET", "metric_system_name": "hits", "delta": 2 }
+        ],
+        "policy_chain": [
+          {
+            "name": "apicast.policy.conditional",
+            "configuration": {
+              "condition": {
+                "operations": [
+                  {
+                    "left": "{{ uri }}",
+                    "left_type": "liquid",
+                    "op": "==",
+                    "right": "/invalid",
+                    "right_type": "plain"
+                  }
+                ]
+              },
+              "policy_chain": [
+                {
+                  "name": "apicast.policy.upstream_connection",
+                  "configuration": {
+                    "connect_timeout": 0.1,
+                    "send_timeout": 0.1,
+                    "read_timeout": 0.1
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "name": "apicast.policy.apicast"
+          }
+        ]
+      }
+    }
+  ]
+}
+--- backend
+  location /transactions/authrep.xml {
+    content_by_lua_block {
+      ngx.exit(ngx.OK)
+    }
+  }
+--- upstream
+  server_name test-upstream.lvh.me;
+  location /test {
+    content_by_lua_block {
+      ngx.say("first part")
+      ngx.flush(true)
+      ngx.sleep(0.2)
+      ngx.say("yay, second part")
+    }
+  }
+--- request
+GET /test?user_key=value
+--- response_body eval
+"first part\x{0a}yay, second part\x{0a}"
+--- error_code: 200
+--- no_error_log
+[error]

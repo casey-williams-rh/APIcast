@@ -45,17 +45,15 @@ function _M:access(context)
   upstream:set_skip_https_connect_on_proxy()
 end
 
-function _M:export()
+function _M:rewrite(context)
   -- This get_http_proxy function will be called in upstream just in case if a
   -- proxy is defined.
-  return  {
-    get_http_proxy = function(uri)
-      if not uri.scheme then
-        return nil
-      end
-      return find_proxy(self, uri.scheme)
+  context.get_http_proxy = function(uri)
+    if not uri.scheme then
+      return nil
     end
-  }
+    return find_proxy(self, uri.scheme)
+  end
 end
 
 return _M

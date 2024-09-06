@@ -38,7 +38,7 @@ content_by_lua_block {
 }
 --- response_body
 connected: 1
-ssl handshake: userdata
+ssl handshake: cdata
 --- error_code: 200
 --- no_error_log
 [error]
@@ -110,7 +110,7 @@ content_by_lua_block {
 }
 --- response_body
 connected: 1
-ssl handshake: userdata
+ssl handshake: cdata
 --- error_code: 200
 --- no_error_log
 [error]
@@ -132,7 +132,7 @@ VZ5Wr10wCgYIKoZIzj0EAwIDSAAwRQIhAPRkfbxowt0H7p5xZYpwoMKanUXz9eKQ
 Regression test. APIcast was crashing because path-based routing needs the http
 method and the path. However, those are not available when trying to find the
 service in the ssl_certificate phase.
-This test checks that APIcast falls back to finding the service by host.
+This test checks that APIcast able to route request to correct service in rewrite phase.
 --- env eval
 (
     'APICAST_HTTPS_PORT' => "$Test::Nginx::Util::ServerPortForClient",
@@ -210,17 +210,17 @@ content_by_lua_block {
 }
 --- response_body
 connected: 1
-ssl handshake: userdata
+ssl handshake: cdata
 HTTP/1.1 201 Created
 
 connected: 1
-ssl handshake: userdata
+ssl handshake: cdata
 HTTP/1.1 202 Accepted
 --- error_code: 200
---- grep_error_log eval: qr/Falling back to routing by host/
+--- grep_error_log eval: qr/Skipping ssl_certificate phase/
 --- grep_error_log_out
-Falling back to routing by host
-Falling back to routing by host
+Skipping ssl_certificate phase
+Skipping ssl_certificate phase
 --- no_error_log
 [error]
 --- user_files

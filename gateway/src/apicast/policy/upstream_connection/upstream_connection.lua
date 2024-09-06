@@ -18,13 +18,11 @@ function _M.new(config)
   return self
 end
 
-function _M:export()
-  return {
-    upstream_connection_opts = {
-      connect_timeout = self.connect_timeout,
-      send_timeout = self.send_timeout,
-      read_timeout = self.read_timeout
-    }
+function _M:rewrite(context)
+  context.upstream_connection_opts = {
+    connect_timeout = self.connect_timeout,
+    send_timeout = self.send_timeout,
+    read_timeout = self.read_timeout
   }
 end
 

@@ -34,15 +34,15 @@ local function find_proxy(self, scheme)
   return self.proxies[scheme]
 end
 
-function _M:export()
-  return  {
-    get_http_proxy = function(uri)
-      if not uri.scheme then
-        return nil
-      end
-      return find_proxy(self, uri.scheme)
+function _M:rewrite(context)
+  -- APIcast reads this flag in the access phase, that's why we need to set it
+  -- in rewrite phase.
+  context.get_http_proxy = function(uri)
+    if not uri.scheme then
+      return nil
     end
-  }
+    return find_proxy(self, uri.scheme)
+  end
 end
 
 return _M

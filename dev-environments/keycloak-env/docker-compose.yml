@@ -1,8 +1,10 @@
 ---
-version: '3.8'
 services:
   gateway:
     image: ${IMAGE_NAME:-apicast-test}
+    build:
+      context: ../..
+      dockerfile: Dockerfile
     depends_on:
     - example.com
     - two.upstream

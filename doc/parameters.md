@@ -524,6 +524,13 @@ directive](https://nginx.org/en/docs/http/ngx_http_core_module.html#large_client
 
 Sets the maximum size of shared memory used by batcher policy. The accepted [size units](https://github.com/openresty/lua-nginx-module?tab=readme-ov-file#lua_shared_dict) are k and m.
 
+### `APICAST_PROXY_BUFFER_SIZE`
+
+**Default:** 4k|8k;
+**Value:** string
+
+Sets the size of the buffer used for handling the response received from the proxied server. This variable sets both [`proxy_buffer` NGINX directive](https://nginx.org/en/docs/http/ngx_http_proxy_module.html#proxy_buffers) and [`proxy_buffer_size` NGINX directive](https://nginx.org/en/docs/http/ngx_http_proxy_module.html#proxy_buffer_size). By default, the buffer size is equal to one memory page. This is either 4 KiB or 8 KiB, depending on a platform.
+
 ### `OPENTELEMETRY`
 
 This environment variable enables NGINX instrumentation using OpenTelemetry tracing library.

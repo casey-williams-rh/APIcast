@@ -8,6 +8,7 @@ certificate to the given service.
 For this policy `APICAST_HTTPS_PORT` variable need to be defined to be able to
 listen in TLS in any port.
 
+NOTE: This policy is not compatible with `APICAST_PATH_ROUTING` or `APICAST_PATH_ROUTING_ONLY`
 
 ### Embedded certificate:
 

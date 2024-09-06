@@ -5,10 +5,11 @@ describe('Retry policy', function()
     it('returns the the number of retries', function()
       local policy_config = { retries = 5, }
       local policy = RetryPolicy.new(policy_config)
+      local context = {}
 
-      local exported = policy:export()
+      policy:rewrite(context)
 
-      assert.same(policy_config.retries, exported.upstream_retries)
+      assert.same(policy_config.retries, context.upstream_retries)
     end)
   end)
 end)

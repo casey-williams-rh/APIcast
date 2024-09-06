@@ -1222,3 +1222,145 @@ qr/a client request body is buffered to a temporary file/
 --- grep_error_log_out
 a client request body is buffered to a temporary file
 a client request body is buffered to a temporary file
+
+
+
+=== TEST 17: camel policy inside conditional policy
+--- configuration
+{
+  "services": [
+    {
+      "id": 42,
+      "backend_version":  1,
+      "backend_authentication_type": "service_token",
+      "backend_authentication_value": "token-value",
+      "proxy": {
+        "api_backend": "http://test-upstream.lvh.me:$TEST_NGINX_SERVER_PORT/",
+        "proxy_rules": [
+          { "pattern": "/", "http_method": "GET", "metric_system_name": "hits", "delta": 2 }
+        ],
+        "policy_chain": [
+          {
+            "name": "apicast.policy.conditional",
+            "configuration": {
+              "condition": {
+                "operations": [
+                  {
+                    "left": "{{ uri }}",
+                    "left_type": "liquid",
+                    "op": "==",
+                    "right": "/test",
+                    "right_type": "plain"
+                  }
+                ]
+              },
+              "policy_chain": [
+                {
+                  "name": "apicast.policy.camel",
+                  "configuration": {
+                    "http_proxy": "http://127.0.0.1:$TEST_NGINX_HTTP_PROXY_PORT"
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "name": "apicast.policy.apicast"
+          }
+        ]
+      }
+    }
+  ]
+}
+--- backend
+  location /transactions/authrep.xml {
+    content_by_lua_block {
+      ngx.exit(ngx.OK)
+    }
+  }
+--- upstream
+  server_name test-upstream.lvh.me;
+  location /test {
+    access_by_lua_block {
+      ngx.say("yay, api backend")
+    }
+  }
+--- request
+GET /test?user_key=value
+--- error_code: 200
+--- error_log env
+using proxy: http://127.0.0.1:$TEST_NGINX_HTTP_PROXY_PORT
+--- no_error_log
+[error]
+
+
+
+=== TEST 18: camel policy inside conditional policy and failed condition
+We know that the policy outputs "using proxy: " when request is forward to proxy server, so we
+can use that to verify that it was not executed.
+--- configuration
+{
+  "services": [
+    {
+      "id": 42,
+      "backend_version":  1,
+      "backend_authentication_type": "service_token",
+      "backend_authentication_value": "token-value",
+      "proxy": {
+        "api_backend": "http://test-upstream.lvh.me:$TEST_NGINX_SERVER_PORT/",
+        "proxy_rules": [
+          { "pattern": "/", "http_method": "GET", "metric_system_name": "hits", "delta": 2 }
+        ],
+        "policy_chain": [
+          {
+            "name": "apicast.policy.conditional",
+            "configuration": {
+              "condition": {
+                "operations": [
+                  {
+                    "left": "{{ uri }}",
+                    "left_type": "liquid",
+                    "op": "==",
+                    "right": "/invalid",
+                    "right_type": "plain"
+                  }
+                ]
+              },
+              "policy_chain": [
+                {
+                  "name": "apicast.policy.camel",
+                  "configuration": {
+                    "http_proxy": "http://127.0.0.1:$TEST_NGINX_HTTP_PROXY_PORT"
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "name": "apicast.policy.apicast"
+          }
+        ]
+      }
+    }
+  ]
+}
+--- backend
+  location /transactions/authrep.xml {
+    content_by_lua_block {
+      ngx.exit(ngx.OK)
+    }
+  }
+--- upstream
+  server_name test-upstream.lvh.me;
+  location /test {
+    access_by_lua_block {
+      ngx.say("yay, api backend")
+    }
+  }
+--- request
+GET /test?user_key=value
+--- error_code: 200
+--- error_log env
+--- no_error_log
+[error]
+using proxy: http://127.0.0.1:$TEST_NGINX_HTTP_PROXY_PORT
