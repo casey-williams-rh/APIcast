@@ -17,6 +17,12 @@ The contents of the configuration file is:
   "services": [
     {
       "proxy": {
+        "hosts": ["one"],
+        "api_backend": "https://echo-api.3scale.net:443",
+        "backend": {
+            "endpoint": "http://127.0.0.1:8081",
+            "host": "backend"
+        },
         "policy_chain": [
           {
             "name": "hello_world",
@@ -49,8 +55,8 @@ First, configure the hello_world policy inside the policy chain with overwrite a
 ### Starting the APIcast server
 To start the APIcast server with the hello_world_configuration.json file inside the development container, run the following command:
 
-```shell
-bash-4.2$ bin/apicast --log-level=debug --dev -c examples/configuration/hello_world_config.json
+```bash
+$ APICAST_LOG_LEVEL=debug APICAST_WORKERS=1 APICAST_CONFIGURATION_LOADER=lazy APICAST_CONFIGURATION_CACHE=0 THREESCALE_CONFIG_FILE=examples/configuration/hello_world_config.json ./bin/apicast
 ```
 
 The bin/apicast executable starts the APIcast server. Set log-level to debug which results in a large amount of debug logging.
@@ -83,7 +89,8 @@ Now you have another interactive bash shell in the APIcast development container
 In the container issue the following HTTP request:
 
 ```shell
-$ curl localhost:8080
+# user_key is a required paramerter for the echoapi backend
+$ curl -H "Host: one" "http://localhost:8080/?user_key="
 <html>
 <head><title>403 Forbidden</title></head>
 <body bgcolor="white">
@@ -92,6 +99,10 @@ $ curl localhost:8080
 </body>
 </html>
 ```
+> **NOTE**: 
+Alernatively, you can get the docker container ip address and curl from your local machine: 
+> - `APICAST_IP=$(docker inspect apicast_build_0-development-1 | yq e -P '.[0].NetworkSettings.Networks.apicast_build_0_default.IPAddress' -)` 
+> - `curl -i -H "Host: one" "http://${APICAST_IP}:8080/?user_key=0123456789"`
 
 The response will be a 403 Forbidden. Look at the logs to see what has happened.
 
@@ -124,11 +135,11 @@ if secret_header ~= self.secret then
 The policy is now executing. You must provide the secret header in the request to pass the validation. Issue the following HTTP request:
 
 ```shell
-$ curl localhost:8080 -H 'secret: mysecret'
-GET / HTTP/1.1
+$ curl "http://localhost:8080/?user_key=" -H 'secret: mysecret' -H "Host: one"
+GET /?user_key= HTTP/1.1
 X-Real-IP: 127.0.0.1
-Host: echo
-User-Agent: curl/7.29.0
+Host: echo:8081
+User-Agent: curl/8.2.1
 Accept: */*
 secret: mysecret
 ```
@@ -136,14 +147,14 @@ secret: mysecret
 You should receive a valid 200 response from the echo server. The rewrite of query parameters to header is not tested, since the request did not contain any query parameters. Issue a new request with a query parameter to see the transformation at work. Issue the following request:
 
 ```shell
-$ curl localhost:8080?myparam=myvalue -H 'secret: mysecret'
-GET /?myparam=myvalue HTTP/1.1
+$ curl localhost:8080?user_key=myvalue -H 'secret: mysecret'
+GET /?userkey=myvalue HTTP/1.1
 X-Real-IP: 127.0.0.1
-Host: echo
-User-Agent: curl/7.29.0
+Host: echo:8081
+User-Agent: curl/8.2.1
 Accept: */*
 secret: mysecret
-myparam: myvalue
+user_key: myvalue
 ```
 
 You will see in the response, the header: myparam:myheader

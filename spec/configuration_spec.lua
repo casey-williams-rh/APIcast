@@ -1,5 +1,12 @@
 local configuration = require 'apicast.configuration'
 local env = require 'resty.env'
+local captured_logs = {}
+
+local function capture_log(level, ...)
+  local message_parts = {...}  -- Capture all message parts
+  local full_message = table.concat(message_parts, "")  -- Concatenate the parts into a full string
+  table.insert(captured_logs, {level = level, message = full_message})
+end
 
 describe('Configuration object', function()
 
@@ -126,12 +133,40 @@ describe('Configuration object', function()
     end)
 
     describe("with service filter", function()
+      local original_ngx_log
+
+      before_each(function()
+        -- Save original log
+        original_ngx_log = ngx.log
+      end)
+      
+      after_each(function()
+        -- After each test, restore the log
+        ngx.log = original_ngx_log
+      end)
 
       local mockservices = {
         Service.new({id="42", hosts={"test.foo.com", "test.bar.com"}}),
         Service.new({id="12", hosts={"staging.foo.com"}}),
         Service.new({id="21", hosts={"prod.foo.com"}}),
+        Service.new({id="56", hosts={"staging.foo.com"}})
       }
+
+      it("log service list once for all filtered services", function()
+        env.set('APICAST_SERVICES_FILTER_BY_URL', '^test.*')
+        env.set('APICAST_SERVICES_LIST', '42,21')
+      
+        ngx.log = capture_log
+        local services_returned = filter_services(mockservices, {"21"})
+        
+        assert.same(services_returned, {mockservices[1], mockservices[3]})
+
+        -- Inspect the captured logs
+        assert.is_not_nil(captured_logs)
+        for _, log in ipairs(captured_logs) do
+          assert.match("filtering out services: 12, 56", log.message)
+        end
+      end)
 
       it("with empty env variable", function()
         env.set('APICAST_SERVICES_FILTER_BY_URL', '')

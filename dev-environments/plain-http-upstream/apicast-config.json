@@ -7,7 +7,7 @@
         "hosts": ["get.example.com"],
         "api_backend": "http://example.com/get",
         "backend": {
-          "endpoint": "http://127.0.0.1:8081",
+          "endpoint": "http://backend:80",
           "host": "backend"
         },
         "policy_chain": [
@@ -34,7 +34,7 @@
         "hosts": ["post.example.com"],
         "api_backend": "http://example.com/post",
         "backend": {
-          "endpoint": "http://127.0.0.1:8081",
+          "endpoint": "http://backend:80",
           "host": "backend"
         },
         "policy_chain": [

@@ -301,3 +301,71 @@ location /transactions/authrep.xml {
 ["yay, api backend\n","yay, api backend\n","yay, api backend\n",""]
 --- error_code eval
 [200, 200, 200, 404]
+
+=== TEST 5: multi service configuration limited to specific service log messages
+--- env eval
+("APICAST_SERVICES_LIST", "42")
+--- configuration
+{
+  "services": [
+    {
+      "backend_version": 1,
+      "proxy": {
+        "hosts": [
+          "one"
+        ],
+        "api_backend": "http://test:$TEST_NGINX_SERVER_PORT/",
+        "proxy_rules": [
+          {
+            "http_method": "GET",
+            "delta": 1,
+            "metric_system_name": "one",
+            "pattern": "/"
+          }
+        ]
+      },
+      "id": 42
+    },
+    {
+      "proxy": {
+        "hosts": [
+          "one"
+        ]
+      },
+      "id": 11
+    },
+    {
+      "proxy": {
+        "hosts": [
+          "one"
+        ]
+      },
+      "id": 33
+    },
+    {
+      "proxy": {
+        "hosts": [
+          "one"
+        ]
+      },
+      "id": 999
+    }
+  ]
+}
+--- backend
+  location /transactions/authrep.xml {
+    content_by_lua_block { ngx.exit(200) }
+  }
+--- upstream
+  location ~ / {
+     echo 'yay, api backend';
+  }
+--- request
+GET /?user_key=1
+--- more_headers
+Host: one
+--- response_body
+yay, api backend
+--- error_code: 200
+--- error_log
+filtering out services: 11, 33, 999
