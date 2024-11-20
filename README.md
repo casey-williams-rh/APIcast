@@ -106,7 +106,7 @@ APIcast uses:
 
 - [OpenResty](http://openresty.org/en/): a platform that includes NGINX, LuaJIT and Lua modules.
 - [busted](https://github.com/Olivine-Labs/busted): for the unit tests.
-- [Test::Nginx](http://search.cpan.org/~agent/Test-Nginx/lib/Test/Nginx/Socket.pm): for the integration tests.
+- [Test::Nginx](https://metacpan.org/pod/Test::Nginx): for the integration tests.
 
 More info can be found in the [development](/doc/development.md) specific doc.
 
