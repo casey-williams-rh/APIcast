@@ -121,3 +121,18 @@ cd /opt/app-root
 echo "Container would now execute: container-entrypoint scripts/run"
 # Example of how it might be executed:
 # /usr/bin/container-entrypoint scripts/run
+
+
+docker ls
+# Step 2: Inspect the container to get its exit code
+# The '{{.State.ExitCode}}' format string extracts just the number.
+exit_code=$(docker inspect my-task-container --format='{{.State.ExitCode}}')
+
+# Step 3: Check the exit code in a script
+if [ "$exit_code" -eq 0 ]; then
+  echo "Container 'my-task-container' ran safely and completed successfully."
+else
+  echo "Error: Container 'my-task-container' exited with code $exit_code."
+  echo "--- Displaying container logs ---"
+  docker logs my-task-container
+fi
