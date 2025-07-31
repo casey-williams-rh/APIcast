@@ -1,5 +1,5 @@
 {
-  "$schema": "http://apicast.io/policy-v1/schema",
+  "$schema": "http://apicast.io/policy-v1/schema#manifest#",
   "name": "Proxy Service",
   "summary": "Adds an HTTP proxy to the service.",
   "description": [

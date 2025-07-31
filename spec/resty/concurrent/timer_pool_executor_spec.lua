@@ -6,8 +6,7 @@ local noop = function() end
 
 describe('TimerPoolExecutor', function()
     describe('worker garbage collection', function()
-        --- Flaky test so mark it for now
-        pending('automatically checks in back old workers', function()
+        it('automatically checks in back old workers', function()
             local pool = TimerPoolExecutor.new({ max_timers = 1 })
 
             assert(pool:post(noop):wait(timeout))
@@ -16,7 +15,7 @@ describe('TimerPoolExecutor', function()
             assert(pool:post(noop):wait(timeout))
         end)
 
-        pending('puts back worker even when task crashes', function ()
+        it('puts back worker even when task crashes', function ()
             local pool = TimerPoolExecutor.new({ max_timers = 1 })
 
             assert(pool:post(error, 'message'):wait(timeout))
