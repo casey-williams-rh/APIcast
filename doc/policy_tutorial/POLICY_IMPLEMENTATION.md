@@ -29,7 +29,7 @@ And while we are changing the schema, we might as well provide a neat summary an
 The new configuration schema looks like this:
 ```json
 {
-  "$schema": "http://apicast.io/policy-v1/schema",
+  "$schema": "http://apicast.io/policy-v1/schema#manifest#",
   "name": "hello_world",
   "summary": "Parameter converter and secret checker",
   "description": [
